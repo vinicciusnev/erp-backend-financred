@@ -25,13 +25,13 @@ public class Cliente {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name="nome_completo")
+    @Column(name = "nome_completo", nullable = false)
     private String nomeCompleto;
 
-    @Column(unique = true, nullable = false)
+    @Column(unique = true, length = 11)
     private String cpf;
 
-    @Column(name="data_nascimento")
+    @Column(name = "data_nascimento")
     private LocalDate dataNascimento;
 
     @Column(nullable = false)
@@ -46,11 +46,25 @@ public class Cliente {
     @Column(name = "renda_mensal", precision = 10, scale = 2)
     private BigDecimal rendaMensal;
 
-    @OneToMany(mappedBy = "cliente", cascade = CascadeType.ALL)
-    private List<Emprestimo> emprestimos;
-
     @Min(0)
     @Max(1000)
     @Column(nullable = false)
     private Long score;
+
+    private String telefone;
+    private String rua;
+    private String numero;
+    private String complemento;
+    private String bairro;
+    private String cidade;
+    private String estado;
+    private String cep;
+    private String profissao;
+    private String empresa;
+    private String banco;
+    private String agencia;
+    private String conta;
+
+    @OneToMany(mappedBy = "cliente", cascade = CascadeType.ALL)
+    private List<Emprestimo> emprestimos;
 }

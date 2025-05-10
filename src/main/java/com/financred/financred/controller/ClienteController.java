@@ -28,4 +28,10 @@ public class ClienteController {
     public List<ClienteResponseDTO> listarClientes() {
         return clienteService.listarTodos();
     }
+
+    @PatchMapping("/{id}")
+    public ResponseEntity<?> atualizarInformacoes(@PathVariable Long id, @RequestBody ClienteRequestDTO clienteDTO) {
+        clienteService.updateInfo(id, clienteDTO);
+        return ResponseEntity.ok().build();
+    }
 }

@@ -5,6 +5,7 @@ import com.financred.financred.dto.request.ClienteRequestDTO;
 import com.financred.financred.enums.Role;
 import com.financred.financred.model.Cliente;
 import com.financred.financred.repository.ClienteRepository;
+import com.financred.financred.service.strategy.ClienteDefaultUpdateStrategy;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -20,17 +21,26 @@ public class ClienteService {
     private final ClienteRepository clienteRepository;
     private final PasswordEncoder passwordEncoder;
 
-    public void save(ClienteRequestDTO dto) {
+    public void save(ClienteRequestDTO request) {
         Cliente cliente = Cliente.builder()
-                .nomeCompleto(dto.getNome())
-                .cpf(dto.getCpf())
-                .email(dto.getEmail())
-                .dataNascimento(dto.getNascimento())
-                .senha(passwordEncoder.encode(dto.getSenha()))
+                .nomeCompleto(request.getNomeCompleto())
+                .cpf(request.getCpf())
+                .email(request.getEmail())
+                .dataNascimento(request.getDataNascimento())
+                .senha(passwordEncoder.encode(request.getSenha()))
                 .role(Role.CLIENTE)
                 .build();
 
         clienteRepository.save(cliente);
+    }
+
+    public void updateInfo(Long id, ClienteRequestDTO request) {
+        Cliente clienteExistente = clienteRepository.getReferenceById(id);
+
+        ClienteDefaultUpdateStrategy clienteDefaultUpdateStrategy = new ClienteDefaultUpdateStrategy();
+        clienteDefaultUpdateStrategy.updateClienteFromDto(clienteExistente, request);
+
+        clienteRepository.save(clienteExistente);
     }
 
     public List<ClienteResponseDTO> listarTodos() {

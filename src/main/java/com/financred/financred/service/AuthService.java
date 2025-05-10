@@ -31,7 +31,7 @@ public class AuthService {
 
         String token = tokenService.generateToken(request.email());
 
-        return new AuthResponseDTO(cliente.getEmail(), token, cliente.getRole().toString());
+        return new AuthResponseDTO(cliente.getEmail(), token, cliente.getRole().toString(), cliente.getId());
     }
 
     public RegisterResponseDTO register(RegisterRequestDTO request) {
@@ -41,7 +41,6 @@ public class AuthService {
 
         Cliente newCliente = new Cliente();
 
-        newCliente.setCpf(request.cpf());
         newCliente.setEmail(request.email());
         newCliente.setRole(Role.CLIENTE);
         newCliente.setSenha(passwordEncoder.encode(request.senha()));
