@@ -92,7 +92,8 @@ public class EmprestimoService {
             emprestimo.setStatusEmprestimo(StatusEmprestimo.REPROVADO);
             emprestimo.setObservacao(erroValidacao.get());
             emprestimoRepository.save(emprestimo);
-            return;
+
+            throw new RuntimeException(erroValidacao.get());
         }
 
         emprestimo.setStatusEmprestimo(StatusEmprestimo.APROVADO);
