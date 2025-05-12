@@ -18,23 +18,66 @@ CREATE TABLE financred.cliente (
 CREATE TABLE financred.emprestimo (
                                       id SERIAL PRIMARY KEY,
                                       valor_solicitado NUMERIC(12,2) NOT NULL,
-                                      data_solicitacao DATE NOT NULL,
-                                      status_emprestimo VARCHAR(50) NOT NULL,
-                                      cliente_id BIGINT REFERENCES financred.cliente(id) ON DELETE CASCADE,
-                                      numero_parcelas INTEGER,
                                       total_com_juros NUMERIC(12,2),
+                                      valor_juros NUMERIC(10, 4),
+                                      taxa_multa_atraso NUMERIC(10, 4),
+                                      numero_parcelas INTEGER,
+                                      taxa_juros NUMERIC(10, 4),
+                                      status_emprestimo VARCHAR(50) NOT NULL,
+                                      tipo_emprestimo VARCHAR(50),
+                                      observacao TEXT,
+                                      data_solicitacao DATE NOT NULL,
+                                      data_aprovacao DATE,
                                       data_inicio DATE,
                                       data_fim DATE,
-                                      valor_juros NUMERIC(5,4)
+                                      aprovado_por VARCHAR(100),
+                                      cliente_id BIGINT REFERENCES financred.cliente(id) ON DELETE CASCADE,
+                                      created_at TIMESTAMP DEFAULT now(),
+                                      updated_at TIMESTAMP DEFAULT now()
 );
 
 -- Tabela: emprestimo_parcelas
 CREATE TABLE financred.emprestimo_parcelas (
-                                               id SERIAL PRIMARY KEY,
-                                               valor_parcela NUMERIC(10,2) NOT NULL,
-                                               emprestimo_id BIGINT REFERENCES financred.emprestimo(id) ON DELETE CASCADE,
-                                               status_parcela VARCHAR(50) NOT NULL,
-                                               valor_parcela_com_juros NUMERIC(10,2) NOT NULL,
-                                               valor_juros NUMERIC(5,4),
-                                               dias_atraso INTEGER
+                                               id serial4 PRIMARY KEY,
+                                               numero_parcela int NOT NULL,
+                                               valor_parcela numeric(10, 2) NOT NULL,
+                                               valor_juros numeric(10, 4),
+                                               multa numeric(10, 2),
+                                               dias_atraso int,
+                                               status_parcela varchar(50) NOT NULL,
+                                               data_vencimento date NOT NULL,
+                                               data_pagamento date,
+                                               observacao text,
+                                               created_at timestamp DEFAULT now(),
+                                               updated_at timestamp DEFAULT now(),
+                                               emprestimo_id int8,
+                                               CONSTRAINT emprestimo_parcelas_emprestimo_id_fkey FOREIGN KEY (emprestimo_id) REFERENCES financred.emprestimo(id) ON DELETE CASCADE
 );
+
+-- Criando trigger
+CREATE OR REPLACE FUNCTION calcular_dias_atraso()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.data_pagamento IS NULL THEN
+        IF CURRENT_DATE > NEW.data_vencimento THEN
+            NEW.dias_atraso := CURRENT_DATE - NEW.data_vencimento;
+ELSE
+            NEW.dias_atraso := 0;
+END IF;
+ELSE
+        IF NEW.data_pagamento > NEW.data_vencimento THEN
+            NEW.dias_atraso := NEW.data_pagamento - NEW.data_vencimento;
+ELSE
+            NEW.dias_atraso := 0;
+END IF;
+END IF;
+
+RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Setando trigger
+CREATE TRIGGER trg_calcular_dias_atraso
+    BEFORE INSERT OR UPDATE ON financred.emprestimo_parcelas
+                         FOR EACH ROW
+                         EXECUTE FUNCTION calcular_dias_atraso();
