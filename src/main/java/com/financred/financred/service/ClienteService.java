@@ -25,7 +25,13 @@ public class ClienteService {
     private final PasswordEncoder passwordEncoder;
 
     public void save(ClienteRequestDTO request) {
-        Cliente cliente = Cliente.builder()
+        Optional<Cliente> existingCliente = clienteRepository.findByCpf(request.getCpf());
+
+        if (existingCliente.isPresent()) {
+            throw new RuntimeException("Já existe um cliente com este CPF.");
+        }
+
+        Cliente newCliente = Cliente.builder()
                 .nomeCompleto(request.getNomeCompleto())
                 .cpf(request.getCpf())
                 .email(request.getEmail())
@@ -33,9 +39,7 @@ public class ClienteService {
                 .role(Role.CLIENTE)
                 .build();
 
-        logger.info("Cliente criado com sucesso!" + cliente);
-
-        clienteRepository.save(cliente);
+        clienteRepository.save(newCliente);
     }
 
     public void updateInfo(Long id, ClienteRequestDTO request) {
