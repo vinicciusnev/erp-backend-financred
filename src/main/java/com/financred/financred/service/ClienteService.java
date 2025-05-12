@@ -12,11 +12,14 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
 public class ClienteService {
+
+    private final Logger logger = Logger.getLogger(ClienteService.class.getName());
 
     private final ClienteRepository clienteRepository;
     private final PasswordEncoder passwordEncoder;
@@ -26,10 +29,11 @@ public class ClienteService {
                 .nomeCompleto(request.getNomeCompleto())
                 .cpf(request.getCpf())
                 .email(request.getEmail())
-                .dataNascimento(request.getDataNascimento())
                 .senha(passwordEncoder.encode(request.getSenha()))
                 .role(Role.CLIENTE)
                 .build();
+
+        logger.info("Cliente criado com sucesso!" + cliente);
 
         clienteRepository.save(cliente);
     }
@@ -62,10 +66,26 @@ public class ClienteService {
 
     private ClienteResponseDTO mapToResponse(Cliente cliente) {
         return ClienteResponseDTO.builder()
-                .nome(cliente.getNomeCompleto())
+                .nomeCompleto(cliente.getNomeCompleto())
                 .cpf(cliente.getCpf())
                 .email(cliente.getEmail())
                 .nascimento(cliente.getDataNascimento())
+                .telefone(cliente.getTelefone())
+                .role(cliente.getRole())
+                .score(cliente.getScore())
+                .renda(cliente.getRendaMensal())
+                .profissao(cliente.getProfissao())
+                .empresa(cliente.getEmpresa())
+                .banco(cliente.getBanco())
+                .agencia(cliente.getAgencia())
+                .conta(cliente.getConta())
+                .rua(cliente.getRua())
+                .numero(cliente.getNumero())
+                .complemento(cliente.getComplemento())
+                .bairro(cliente.getBairro())
+                .cidade(cliente.getCidade())
+                .estado(cliente.getEstado())
+                .cep(cliente.getCep())
                 .build();
     }
 }

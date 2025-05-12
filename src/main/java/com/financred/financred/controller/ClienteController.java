@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("api/v1/clientes")
+@RequestMapping("/api/v1/clientes")
 public class ClienteController {
 
     @Autowired
@@ -27,6 +27,12 @@ public class ClienteController {
     @PreAuthorize("hasRole('ADMIN')")
     public List<ClienteResponseDTO> listarClientes() {
         return clienteService.listarTodos();
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<ClienteResponseDTO> buscarPorId(@PathVariable Long id) {
+        ClienteResponseDTO cliente = clienteService.buscarPorId(id);
+        return ResponseEntity.ok(cliente);
     }
 
     @PatchMapping("/{id}")

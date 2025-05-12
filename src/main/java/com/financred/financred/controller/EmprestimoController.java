@@ -11,10 +11,11 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
+import java.time.LocalDate;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/emprestimos")
+@RequestMapping("/api/v1/emprestimos")
 @RequiredArgsConstructor
 public class EmprestimoController {
 
@@ -23,7 +24,6 @@ public class EmprestimoController {
 
     @ResponseStatus(code = HttpStatus.ACCEPTED)
     @PostMapping
-    @PreAuthorize("hasRole('CLIENTE')")
     public void solicitarEmprestimo(@RequestBody EmprestimoRequestDTO request) {
         emprestimoService.solicitaEmprestimo(request);
     }
@@ -40,10 +40,24 @@ public class EmprestimoController {
                                                                         Principal principal) {
         // Apenas ADMIN ou o próprio cliente pode ver seus empréstimos
         if (!principal.getName().equals(String.valueOf(id)) &&
-                !principal.toString().contains("ROLE_ADMIN")) {
+                !principal.toString().contains("ADMIN")) {
             return ResponseEntity.status(403).build();
         }
 
-        return ResponseEntity.ok(emprestimoService.listarPorCliente(id));
+        List<EmprestimoResponseDTO> emprestimoResponseDtos = emprestimoService.listarPorCliente(id);
+
+        return ResponseEntity.ok(emprestimoResponseDtos);
+    }
+
+    @PutMapping("/quitar-parcela")
+    public ResponseEntity<?> quitarParcela(@RequestBody LocalDate dataVencimento, Long idEmprestimo) {
+        emprestimoService.quitarParcela(dataVencimento, idEmprestimo);
+        return ResponseEntity.ok().build();
+    }
+
+    @PutMapping("/quitar-emprestimo")
+    public ResponseEntity<?> quitarEmprestimo(@RequestBody Long idEmprestimo) {
+        emprestimoService.quitarEmprestimo(idEmprestimo);
+        return ResponseEntity.ok().build();
     }
 }

@@ -4,5 +4,6 @@ public enum StatusEmprestimo {
     SOLICITADO,
     VERIFICANDO,
     APROVADO,
-    REPROVADO
+    REPROVADO,
+    QUITADO
 }

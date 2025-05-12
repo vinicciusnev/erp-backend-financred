@@ -46,10 +46,11 @@ public class Cliente {
     @Column(name = "renda_mensal", precision = 10, scale = 2)
     private BigDecimal rendaMensal;
 
+    @Builder.Default
     @Min(0)
     @Max(1000)
     @Column(nullable = false)
-    private Long score;
+    private Long score = 500L;
 
     private String telefone;
     private String rua;

@@ -49,6 +49,6 @@ public class AuthService {
         clienteRepository.save(newCliente);
 
         String token = tokenService.generateToken(request.email());
-        return new RegisterResponseDTO(token, Role.CLIENTE.toString());
+        return new RegisterResponseDTO(token, Role.CLIENTE.toString(), newCliente.getId());
     }
 }
