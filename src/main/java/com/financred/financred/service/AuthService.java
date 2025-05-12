@@ -43,6 +43,7 @@ public class AuthService {
 
         newCliente.setEmail(request.email());
         newCliente.setRole(Role.CLIENTE);
+        newCliente.setCpf(request.cpf());
         newCliente.setSenha(passwordEncoder.encode(request.senha()));
         newCliente.setNomeCompleto(request.nomeCompleto());
 

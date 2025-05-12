@@ -3,15 +3,32 @@ CREATE SCHEMA IF NOT EXISTS financred;
 
 -- Tabela: cliente
 CREATE TABLE financred.cliente (
-                                   id SERIAL PRIMARY KEY,
-                                   nome_completo VARCHAR(255),
-                                   cpf VARCHAR(14) NOT NULL UNIQUE,
-                                   data_nascimento DATE,
-                                   email VARCHAR(255),
-                                   senha VARCHAR(255),
-                                   role VARCHAR(50),
-                                   renda_mensal NUMERIC(10,2),
-                                   score BIGINT NOT NULL CHECK (score BETWEEN 0 AND 1000)
+                                   id serial4 NOT NULL,
+                                   nome_completo varchar(255) NOT NULL,
+                                   cpf varchar(14) NULL,
+                                   data_nascimento date NULL,
+                                   email varchar(255) NOT NULL,
+                                   telefone varchar(20) NULL,
+                                   senha varchar(255) NULL,
+                                   "role" varchar(50) NOT NULL,
+                                   rua varchar(255) NULL,
+                                   numero varchar(20) NULL,
+                                   complemento varchar(255) NULL,
+                                   bairro varchar(100) NULL,
+                                   cidade varchar(100) NULL,
+                                   estado varchar(100) NULL,
+                                   cep varchar(20) NULL,
+                                   renda_mensal numeric(10, 2) NULL,
+                                   profissao varchar(100) NULL,
+                                   empresa varchar(255) NULL,
+                                   banco varchar(100) NULL,
+                                   agencia varchar(20) NULL,
+                                   conta varchar(30) NULL,
+                                   score int8 NULL,
+                                   CONSTRAINT cliente_cpf_key UNIQUE (cpf),
+                                   CONSTRAINT cliente_pkey PRIMARY KEY (id),
+                                   CONSTRAINT cliente_renda_mensal_check CHECK ((renda_mensal >= (0)::numeric)),
+                                   CONSTRAINT cliente_score_check CHECK (((score >= 0) AND (score <= 1000)))
 );
 
 -- Tabela: emprestimo
