@@ -1,5 +1,7 @@
 package com.financred.financred.infra.security;
 
+import com.financred.financred.dto.reponse.ClienteAuthDTO;
+import com.financred.financred.enums.Role;
 import com.financred.financred.infra.service.SecurityService;
 import com.financred.financred.infra.service.TokenService;
 import com.financred.financred.model.Cliente;
@@ -25,20 +27,25 @@ public class SecurityFilter extends OncePerRequestFilter {
     @Autowired
     private SecurityService securityService;
 
-    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+    @Override
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+            throws ServletException, IOException {
         var token = this.recoverToken(request);
         var login = tokenService.validateToken(token);
 
         if (login != null) {
-            Cliente cliente = securityService.getUserWithRole(login);
+            Role userWithRole = securityService.getUserWithRole(login);
 
-            var authorities = Collections.singletonList(new SimpleGrantedAuthority(cliente.getRole().toString()));
-            var authentication = new UsernamePasswordAuthenticationToken(cliente, null, authorities);
+            ClienteAuthDTO clienteAuth = securityService.getUserBasicInfo(login);
+
+            var authorities = Collections.singletonList(new SimpleGrantedAuthority(userWithRole.toString()));
+            var authentication = new UsernamePasswordAuthenticationToken(clienteAuth, null, authorities);
             SecurityContextHolder.getContext().setAuthentication(authentication);
         }
 
         filterChain.doFilter(request, response);
     }
+
 
     private String recoverToken(HttpServletRequest request) {
         String authHeader = request.getHeader("Authorization");

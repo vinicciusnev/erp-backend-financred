@@ -1,6 +1,6 @@
 package com.financred.financred.enums;
 
 public enum Role {
-    CLIENTE,
-    ADMIN
+    ROLE_CLIENTE,
+    ROLE_ADMIN
 }

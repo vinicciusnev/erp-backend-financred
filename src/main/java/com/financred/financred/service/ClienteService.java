@@ -6,6 +6,7 @@ import com.financred.financred.enums.Role;
 import com.financred.financred.model.Cliente;
 import com.financred.financred.repository.ClienteRepository;
 import com.financred.financred.service.strategy.ClienteDefaultUpdateStrategy;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -24,6 +25,7 @@ public class ClienteService {
     private final ClienteRepository clienteRepository;
     private final PasswordEncoder passwordEncoder;
 
+    @Transactional
     public void save(ClienteRequestDTO request) {
         Optional<Cliente> existingCliente = clienteRepository.findByCpf(request.getCpf());
 
@@ -36,12 +38,13 @@ public class ClienteService {
                 .cpf(request.getCpf())
                 .email(request.getEmail())
                 .senha(passwordEncoder.encode(request.getSenha()))
-                .role(Role.CLIENTE)
+                .role(Role.ROLE_CLIENTE)
                 .build();
 
         clienteRepository.save(newCliente);
     }
 
+    @Transactional
     public void updateInfo(Long id, ClienteRequestDTO request) {
         Cliente clienteExistente = clienteRepository.getReferenceById(id);
 

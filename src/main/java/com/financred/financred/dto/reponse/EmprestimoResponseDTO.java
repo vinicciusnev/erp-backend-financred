@@ -29,5 +29,4 @@ public class EmprestimoResponseDTO {
     private String observacao;
     private LocalDate dataSolicitacao;
     private LocalDate dataAprovacao;
-    private String aprovadoPor;
 }

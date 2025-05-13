@@ -42,7 +42,7 @@ public class AuthService {
         Cliente newCliente = new Cliente();
 
         newCliente.setEmail(request.email());
-        newCliente.setRole(Role.CLIENTE);
+        newCliente.setRole(Role.ROLE_CLIENTE);
         newCliente.setCpf(request.cpf());
         newCliente.setSenha(passwordEncoder.encode(request.senha()));
         newCliente.setNomeCompleto(request.nomeCompleto());
@@ -50,6 +50,6 @@ public class AuthService {
         clienteRepository.save(newCliente);
 
         String token = tokenService.generateToken(request.email());
-        return new RegisterResponseDTO(token, Role.CLIENTE.toString(), newCliente.getId());
+        return new RegisterResponseDTO(token, Role.ROLE_CLIENTE.toString(), newCliente.getId());
     }
 }

@@ -43,7 +43,7 @@ public class EmprestimoService {
 
 
     public void solicitaEmprestimo(EmprestimoRequestDTO request) {
-        Cliente cliente = clienteRepository.findByCpf(request.getCliente().getCpf())
+        Cliente cliente = clienteRepository.findById(request.getIdCliente())
                 .orElseThrow(() -> new RuntimeException("Cliente não encontrado"));
 
         Emprestimo emprestimo = Emprestimo.builder()
@@ -53,9 +53,9 @@ public class EmprestimoService {
                 .cliente(cliente)
                 .numeroParcelas(request.getParcelas())
                 .tipoEmprestimo(request.getTipoEmprestimo())
-                .taxaJuros(request.getJuros())
+                .taxaJuros(new BigDecimal("0.04"))
                 .observacao(request.getObservacao())
-                .taxaMultaAtraso(new BigDecimal("0.02")) // exemplo de valor
+                .taxaMultaAtraso(new BigDecimal("0.02"))
                 .build();
 
         emprestimoRepository.save(emprestimo);
@@ -216,7 +216,6 @@ public class EmprestimoService {
                 .observacao(emprestimo.getObservacao())
                 .dataSolicitacao(emprestimo.getDataSolicitacao())
                 .dataAprovacao(emprestimo.getDataAprovacao())
-                .aprovadoPor(emprestimo.getAprovadoPor())
                 .build();
     }
 }

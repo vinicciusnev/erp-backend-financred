@@ -14,5 +14,5 @@ public class EmprestimoRequestDTO {
     private BigDecimal juros;
     private String observacao;
     private String tipoEmprestimo;
-    private ClienteRequestDTO cliente;
+    private Long idCliente;
 }

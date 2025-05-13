@@ -1,5 +1,6 @@
 package com.financred.financred.controller;
 
+import com.financred.financred.dto.reponse.ClienteAuthDTO;
 import com.financred.financred.dto.reponse.EmprestimoResponseDTO;
 import com.financred.financred.dto.request.EmprestimoRequestDTO;
 import com.financred.financred.service.EmprestimoService;
@@ -8,6 +9,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
@@ -38,9 +40,12 @@ public class EmprestimoController {
     @PreAuthorize("hasAnyRole('CLIENTE', 'ADMIN')")
     public ResponseEntity<List<EmprestimoResponseDTO>> listarPorCliente(@PathVariable Long id,
                                                                         Principal principal) {
-        // Apenas ADMIN ou o próprio cliente pode ver seus empréstimos
-        if (!principal.getName().equals(String.valueOf(id)) &&
-                !principal.toString().contains("ADMIN")) {
+        ClienteAuthDTO clienteAuth = (ClienteAuthDTO) ((Authentication) principal).getPrincipal();
+
+        if (!clienteAuth.getId().equals(id) &&
+                ((Authentication) principal).getAuthorities()
+                        .stream()
+                        .noneMatch(a -> a.getAuthority().equals("ROLE_ADMIN"))) {
             return ResponseEntity.status(403).build();
         }
 
