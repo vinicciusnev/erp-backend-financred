@@ -14,7 +14,7 @@ import java.time.LocalDate;
 @AllArgsConstructor
 @Builder
 public class EmprestimoResponseDTO {
-    private Long id;
+    private String id;
     private BigDecimal valorSolicitado;
     private BigDecimal totalComJuros;
     private BigDecimal valorJuros;
@@ -24,7 +24,7 @@ public class EmprestimoResponseDTO {
     private StatusEmprestimo status;
     private LocalDate dataInicio;
     private LocalDate dataFim;
-    private Long clienteId;
+    private String clienteId;
     private String tipoEmprestimo;
     private String observacao;
     private LocalDate dataSolicitacao;

@@ -22,4 +22,14 @@ public class GlobalExceptionHandler {
     public ResponseEntity<String> handleInvalidCredentialsException(InvalidCredentialsException ex) {
         return new ResponseEntity<>("Erro: " + ex.getMessage(), HttpStatus.BAD_REQUEST);
     }
+
+    @ExceptionHandler(ValidacaoEmprestimoException.class)
+    public ResponseEntity<String> handleValidacaoEmprestimoException(ValidacaoEmprestimoException ex) {
+        return ResponseEntity.badRequest().body(ex.getMessage());
+    }
+
+    @ExceptionHandler(QuitacaoEmprestimoException.class)
+    public ResponseEntity<String> handleQuitacaoEmprestimo(QuitacaoEmprestimoException ex) {
+        return ResponseEntity.badRequest().body(ex.getMessage());
+    }
 }

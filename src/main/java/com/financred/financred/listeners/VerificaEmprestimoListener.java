@@ -1,7 +1,7 @@
 package com.financred.financred.listeners;
 
+import com.financred.financred.config.RabbitConfiguration;
 import com.financred.financred.dto.reponse.EmprestimoSolicitadoDTO;
-import com.financred.financred.dto.request.EmprestimoRequestDTO;
 import com.financred.financred.service.EmprestimoService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
@@ -13,7 +13,7 @@ public class VerificaEmprestimoListener {
 
     private final EmprestimoService emprestimoService;
 
-    @RabbitListener(queues = "verificar-emprestimo.queue")
+    @RabbitListener(queues = RabbitConfiguration.QUEUE_NAME, containerFactory = "rabbitListenerContainerFactory")
     public void processMessage(EmprestimoSolicitadoDTO dto) {
         emprestimoService.updateEmprestimo(dto.getId());
     }

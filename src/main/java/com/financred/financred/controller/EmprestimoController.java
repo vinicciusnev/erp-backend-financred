@@ -3,6 +3,8 @@ package com.financred.financred.controller;
 import com.financred.financred.dto.reponse.ClienteAuthDTO;
 import com.financred.financred.dto.reponse.EmprestimoResponseDTO;
 import com.financred.financred.dto.request.EmprestimoRequestDTO;
+import com.financred.financred.dto.request.QuitarEmprestimoRequestDTO;
+import com.financred.financred.dto.request.QuitarParcelaRequestDTO;
 import com.financred.financred.service.EmprestimoService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -13,7 +15,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.security.Principal;
-import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -38,8 +39,7 @@ public class EmprestimoController {
 
     @GetMapping("/cliente/{id}")
     @PreAuthorize("hasAnyRole('CLIENTE', 'ADMIN')")
-    public ResponseEntity<List<EmprestimoResponseDTO>> listarPorCliente(@PathVariable Long id,
-                                                                        Principal principal) {
+    public ResponseEntity<List<EmprestimoResponseDTO>> listarPorCliente(@PathVariable Long id, Principal principal) {
         ClienteAuthDTO clienteAuth = (ClienteAuthDTO) ((Authentication) principal).getPrincipal();
 
         if (!clienteAuth.getId().equals(id) &&
@@ -55,14 +55,14 @@ public class EmprestimoController {
     }
 
     @PutMapping("/quitar-parcela")
-    public ResponseEntity<?> quitarParcela(@RequestBody LocalDate dataVencimento, Long idEmprestimo) {
-        emprestimoService.quitarParcela(dataVencimento, idEmprestimo);
+    public ResponseEntity<?> quitarParcela(@RequestBody QuitarParcelaRequestDTO request) {
+        emprestimoService.quitarParcela(request);
         return ResponseEntity.ok().build();
     }
 
     @PutMapping("/quitar-emprestimo")
-    public ResponseEntity<?> quitarEmprestimo(@RequestBody Long idEmprestimo) {
-        emprestimoService.quitarEmprestimo(idEmprestimo);
+    public ResponseEntity<?> quitarEmprestimo(@RequestBody QuitarEmprestimoRequestDTO request) {
+        emprestimoService.quitarEmprestimo(request);
         return ResponseEntity.ok().build();
     }
 }

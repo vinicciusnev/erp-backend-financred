@@ -78,16 +78,16 @@ BEGIN
     IF NEW.data_pagamento IS NULL THEN
         IF CURRENT_DATE > NEW.data_vencimento THEN
             NEW.dias_atraso := CURRENT_DATE - NEW.data_vencimento;
-ELSE
+        ELSE
             NEW.dias_atraso := 0;
-END IF;
-ELSE
+        END IF;
+    ELSE
         IF NEW.data_pagamento > NEW.data_vencimento THEN
             NEW.dias_atraso := NEW.data_pagamento - NEW.data_vencimento;
-ELSE
+        ELSE
             NEW.dias_atraso := 0;
-END IF;
-END IF;
+        END IF;
+    END IF;
 
 RETURN NEW;
 END;
@@ -95,6 +95,6 @@ $$ LANGUAGE plpgsql;
 
 -- Setando trigger
 CREATE TRIGGER trg_calcular_dias_atraso
-    BEFORE INSERT OR UPDATE ON financred.emprestimo_parcelas
-                         FOR EACH ROW
-                         EXECUTE FUNCTION calcular_dias_atraso();
+BEFORE INSERT OR UPDATE ON financred.emprestimo_parcelas
+FOR EACH ROW
+EXECUTE FUNCTION calcular_dias_atraso();

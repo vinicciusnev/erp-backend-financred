@@ -10,7 +10,6 @@ public class EmprestimoRequestDTO {
     private BigDecimal valorSolicitado;
     private Integer parcelas;
     private LocalDate dataInicio;
-    private LocalDate dataFim;
     private BigDecimal juros;
     private String observacao;
     private String tipoEmprestimo;
