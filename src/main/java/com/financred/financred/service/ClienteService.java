@@ -5,9 +5,10 @@ import com.financred.financred.dto.request.ClienteRequestDTO;
 import com.financred.financred.enums.Role;
 import com.financred.financred.model.Cliente;
 import com.financred.financred.repository.ClienteRepository;
-import com.financred.financred.service.strategy.ClienteDefaultUpdateStrategy;
+import com.financred.financred.service.mappers.ClienteMapper;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -24,6 +25,7 @@ public class ClienteService {
 
     private final ClienteRepository clienteRepository;
     private final PasswordEncoder passwordEncoder;
+    private final ClienteMapper clienteMapper;
 
     @Transactional
     public void save(ClienteRequestDTO request) {
@@ -48,8 +50,7 @@ public class ClienteService {
     public void updateInfo(Long id, ClienteRequestDTO request) {
         Cliente clienteExistente = clienteRepository.getReferenceById(id);
 
-        ClienteDefaultUpdateStrategy clienteDefaultUpdateStrategy = new ClienteDefaultUpdateStrategy();
-        clienteDefaultUpdateStrategy.updateClienteFromDto(clienteExistente, request);
+        clienteMapper.updateClienteFromDto(request, clienteExistente);
 
         clienteRepository.save(clienteExistente);
     }
