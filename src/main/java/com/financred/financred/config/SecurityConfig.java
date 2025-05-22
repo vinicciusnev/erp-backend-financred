@@ -57,6 +57,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PATCH, "/api/v1/clientes/**").authenticated()
                         .requestMatchers(HttpMethod.PUT, "/api/v1/emprestimos/**").authenticated()
 
+                        .requestMatchers(HttpMethod.GET, "/api/v1/historico").hasRole("ADMIN")
+
                         // Tudo mais precisa de autenticação
                         .anyRequest().authenticated()
                 )

@@ -1,24 +1,27 @@
 package com.financred.financred.service;
 
-
-import com.financred.financred.dto.reponse.ClienteContextDTO;
-import com.financred.financred.dto.reponse.EmprestimoResponseDTO;
-import com.financred.financred.dto.reponse.EmprestimoSolicitadoDTO;
+import com.financred.financred.dto.reponse.*;
 import com.financred.financred.dto.request.EmprestimoRequestDTO;
 import com.financred.financred.dto.request.QuitarEmprestimoRequestDTO;
 import com.financred.financred.dto.request.QuitarParcelaRequestDTO;
 import com.financred.financred.enums.StatusEmprestimo;
 import com.financred.financred.enums.StatusParcela;
+import com.financred.financred.exception.AcessoNegadoException;
 import com.financred.financred.exception.QuitacaoEmprestimoException;
 import com.financred.financred.exception.ValidacaoEmprestimoException;
 import com.financred.financred.model.Cliente;
 import com.financred.financred.model.Emprestimo;
 import com.financred.financred.model.EmprestimoParcelas;
+import com.financred.financred.model.HistoricoPagamentos;
 import com.financred.financred.repository.ClienteRepository;
 import com.financred.financred.repository.EmprestimoParcelasRepository;
 import com.financred.financred.repository.EmprestimoRepository;
+import com.financred.financred.repository.HistoricoPagamentosRepository;
 import jakarta.persistence.EntityNotFoundException;
-import jakarta.transaction.Transactional;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,6 +30,7 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.security.Principal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -40,12 +44,15 @@ public class EmprestimoService {
     private final EmprestimoRepository emprestimoRepository;
     private final EmprestimoParcelasRepository emprestimoParcelasRepository;
     private final ClienteRepository clienteRepository;
+    private final HistoricoPagamentosRepository historicoPagamentosRepository;
     private final EmprestimoValidadorService validador;
+
+    @Autowired
+    private SimpMessagingTemplate messagingTemplate;
 
     @Autowired
     @Qualifier("customRabbitTemplate")
     private RabbitTemplate rabbitTemplate;
-
 
     public void solicitaEmprestimo(EmprestimoRequestDTO request) {
         Cliente cliente = clienteRepository.findById(request.getIdCliente())
@@ -65,14 +72,12 @@ public class EmprestimoService {
 
         emprestimoRepository.save(emprestimo);
 
-        EmprestimoSolicitadoDTO dto = new EmprestimoSolicitadoDTO(emprestimo.getId());
+        EmprestimoSolicitadoDTO dto = new EmprestimoSolicitadoDTO(emprestimo.getId(), request.getDataInicio());
         rabbitTemplate.convertAndSend("verificar-emprestimo.ex", "", dto);
     }
 
-    @Transactional
-    public void updateEmprestimo(Long emprestimoId) {
-        LocalDate hoje = LocalDate.now();
-
+    @Transactional(noRollbackFor = ValidacaoEmprestimoException.class)
+    public void updateEmprestimo(Long emprestimoId, LocalDate dataInicio) {
         Emprestimo emprestimo = emprestimoRepository.findById(emprestimoId)
                 .orElseThrow(() -> new EntityNotFoundException("Empréstimo não encontrado"));
 
@@ -93,21 +98,29 @@ public class EmprestimoService {
         ClienteContextDTO clienteContextDTO = new ClienteContextDTO(cliente, valorParcela, hasEmAberto, comprometimentoMaximo);
 
         Optional<String> erroValidacao = validador.validar(clienteContextDTO);
+
         if (erroValidacao.isPresent()) {
             emprestimo.setStatusEmprestimo(StatusEmprestimo.REPROVADO);
             emprestimo.setObservacao(erroValidacao.get());
             emprestimoRepository.save(emprestimo);
 
+            StatusEmprestimoResponseDTO dto = new StatusEmprestimoResponseDTO(
+                    emprestimo.getId(),
+                    emprestimo.getStatusEmprestimo(),
+                    emprestimo.getObservacao()
+            );
+            messagingTemplate.convertAndSend("/topic/status-emprestimo/" + cliente.getId(), dto);
+
             throw new ValidacaoEmprestimoException(erroValidacao.get());
         }
 
         emprestimo.setStatusEmprestimo(StatusEmprestimo.APROVADO);
-        emprestimo.setDataInicio(hoje);
-        emprestimo.setDataFim(hoje.plusMonths(parcelas));
+        emprestimo.setDataInicio(dataInicio);
+        emprestimo.setDataFim(dataInicio.plusMonths(parcelas));
         emprestimo.setValorJuros(valorJuros);
         emprestimo.setTaxaJuros(taxaJuros);
         emprestimo.setTotalComJuros(totalComJuros);
-        emprestimo.setDataAprovacao(hoje);
+        emprestimo.setDataAprovacao(LocalDate.now());
         emprestimo.setAprovadoPor("AUTOMATICO");
 
         List<EmprestimoParcelas> listaParcelas = IntStream.rangeClosed(1, parcelas)
@@ -116,15 +129,22 @@ public class EmprestimoService {
                         .statusParcela(StatusParcela.PENDENTE)
                         .diasAtraso(0)
                         .numeroParcela(i)
-                        .dataVencimento(hoje.plusMonths(i))
+                        .dataVencimento(dataInicio.plusMonths(i - 1))
                         .emprestimo(emprestimo)
                         .build())
                 .collect(Collectors.toList());
 
         emprestimo.setParcelas(listaParcelas);
-
         emprestimoRepository.save(emprestimo);
+
+        StatusEmprestimoResponseDTO dto = new StatusEmprestimoResponseDTO(
+                emprestimo.getId(),
+                emprestimo.getStatusEmprestimo(),
+                emprestimo.getObservacao()
+        );
+        messagingTemplate.convertAndSend("/topic/status-emprestimo/" + cliente.getId(), dto);
     }
+
 
     private BigDecimal calcularValorParcelaComJuros(BigDecimal valor, int parcelas, BigDecimal taxaMensal) {
         BigDecimal umMaisJuros = BigDecimal.ONE.add(taxaMensal);
@@ -139,12 +159,25 @@ public class EmprestimoService {
                 .orElseThrow(() -> new EntityNotFoundException("Parcela não encontrada"));
 
         if (parcela.getStatusParcela() == StatusParcela.PAGA) {
-            throw new RuntimeException("A parcela já foi quitada.");
+            throw new QuitacaoEmprestimoException("A parcela já foi quitada anteriormente.");
         }
 
         parcela.setStatusParcela(StatusParcela.PAGA);
+        parcela.setDataPagamento(LocalDate.now());
 
         emprestimoParcelasRepository.save(parcela);
+
+        Emprestimo emprestimo = parcela.getEmprestimo();
+
+        HistoricoPagamentos historicoPagamentos = HistoricoPagamentos.builder()
+                .emprestimo(emprestimo)
+                .parcela(parcela)
+                .valorPago(parcela.getValorParcela())
+                .formaPagamento("PIX")
+                .statusPagamento("PAGO")
+                .build();
+
+        historicoPagamentosRepository.save(historicoPagamentos);
     }
 
     @Transactional
@@ -152,21 +185,45 @@ public class EmprestimoService {
         Emprestimo emprestimo = emprestimoRepository.findById(request.idEmprestimo())
                 .orElseThrow(() -> new EntityNotFoundException("Empréstimo não encontrado"));
 
-        List<EmprestimoParcelas> emprestimoParcelasAtrasadas = emprestimoParcelasRepository.findByStatusParcelaAndEmprestimoId(StatusParcela.ATRASADA, request.idEmprestimo())
-                .orElseThrow(() -> new EntityNotFoundException("Parcelas pendentes não encontradas"));
+        List<EmprestimoParcelas> parcelas = emprestimoParcelasRepository.findByEmprestimoId(request.idEmprestimo())
+                .orElseThrow(() -> new EntityNotFoundException("Parcela não encontrada"));
 
-        if (!emprestimoParcelasAtrasadas.isEmpty()) {
+        List<EmprestimoParcelas> atrasadas = parcelas.stream()
+                .filter(p -> p.getStatusParcela() == StatusParcela.ATRASADA)
+                .toList();
+
+        List<EmprestimoParcelas> pendentes = parcelas.stream()
+                .filter(p -> p.getStatusParcela() == StatusParcela.PENDENTE)
+                .toList();
+
+        List<EmprestimoParcelas> pagas = parcelas.stream()
+                .filter(p -> p.getStatusParcela() == StatusParcela.PAGA)
+                .toList();
+
+        if (!atrasadas.isEmpty()) {
             throw new QuitacaoEmprestimoException("Há parcelas atrasadas para este empréstimo. Renegocie primeiro para prosseguir com a quitação do emprestimo");
         }
 
-        List<EmprestimoParcelas> emprestimoParcelas = emprestimoParcelasRepository.findByStatusParcelaAndEmprestimoId(StatusParcela.PENDENTE, request.idEmprestimo())
-                .orElseThrow(() -> new EntityNotFoundException("Parcelas pendentes não encontradas"));
-
-        if (emprestimoParcelas.isEmpty()) {
+        if (pendentes.isEmpty()) {
             throw new EntityNotFoundException("Não há parcelas pendentes para este empréstimo.");
         }
 
-        for (EmprestimoParcelas parcela : emprestimoParcelas) {
+        BigDecimal totalPago = pagas.stream()
+                .map(EmprestimoParcelas::getValorParcela)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        BigDecimal valorRestante = emprestimo.getTotalComJuros().subtract(totalPago);
+
+        HistoricoPagamentos historicoPagamentos = HistoricoPagamentos.builder()
+                .emprestimo(emprestimo)
+                .valorPago(valorRestante)
+                .formaPagamento("PIX")
+                .statusPagamento("PAGO")
+                .build();
+
+        historicoPagamentosRepository.save(historicoPagamentos);
+
+        for (EmprestimoParcelas parcela : pendentes) {
             parcela.setStatusParcela(StatusParcela.PAGA);
             parcela.setDataPagamento(LocalDate.now());
         }
@@ -184,30 +241,67 @@ public class EmprestimoService {
                 .collect(Collectors.toList());
     }
 
-    public List<EmprestimoResponseDTO> listarPorCliente(Long idCliente) {
-        return emprestimoRepository.findByClienteId(idCliente)
+    public List<EmprestimoResponseDTO> listarPorCliente(Long idCliente, Principal principal) {
+        ClienteAuthDTO clienteAuth = (ClienteAuthDTO) ((Authentication) principal).getPrincipal();
+
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+
+        boolean isAdmin = auth.getAuthorities()
                 .stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+
+        if (!isAdmin && !clienteAuth.getId().equals(idCliente)) {
+            throw new AcessoNegadoException("Você não tem permissão para acessar esses dados.");
+        }
+
+        List<Emprestimo> emprestimos = emprestimoRepository.findByClienteId(idCliente)
+                .orElseThrow(() -> new EntityNotFoundException("Não há registros de emprestimos para o cliente"));
+
+        return emprestimos.stream()
                 .map(this::toDTO)
                 .collect(Collectors.toList());
     }
 
-    public List<EmprestimoResponseDTO> listarPorStatus(StatusEmprestimo status) {
-        return emprestimoRepository.findByStatusEmprestimo(status)
+    public List<EmprestimoParcelasResponseDTO> listarParcelasPorEmprestimoEUsuario(Long emprestimoId, Principal principal) {
+        ClienteAuthDTO clienteAuth = (ClienteAuthDTO) ((Authentication) principal).getPrincipal();
+
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+
+        boolean isAdmin = auth.getAuthorities()
                 .stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+
+        List<EmprestimoParcelas> emprestimoParcelas = emprestimoParcelasRepository.findByEmprestimoId(emprestimoId)
+                .orElseThrow(() -> new EntityNotFoundException("Empréstimo não encontrado"));
+
+        if (!emprestimoParcelas.get(0).getEmprestimo().getCliente().getId().equals(clienteAuth.getId()) && !isAdmin) {
+            throw new AcessoNegadoException("Usuário não autorizado");
+        }
+
+        return emprestimoParcelas.stream()
                 .map(this::toDTO)
                 .collect(Collectors.toList());
     }
 
-    public List<EmprestimoResponseDTO> listarPorDataSolicitacao(LocalDate inicio, LocalDate fim) {
-        return emprestimoRepository.findByDataSolicitacaoBetween(inicio, fim)
+    public List<EmprestimoResponseDTO> listarPorStatus(StatusEmprestimo status, Principal principal) {
+        ClienteAuthDTO clienteAuth = (ClienteAuthDTO) ((Authentication) principal).getPrincipal();
+
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+
+        boolean isAdmin = auth.getAuthorities()
                 .stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+
+        List<Emprestimo> emprestimos = emprestimoRepository.findByStatusEmprestimo(status)
+                .orElseThrow(() -> new EntityNotFoundException("Empréstimo não encontrado"));
+
+        if (!emprestimos.get(0).getCliente().getId().equals(clienteAuth.getId()) && !isAdmin) {
+            throw new AcessoNegadoException("Usuário não autorizado");
+        }
+
+        return emprestimos.stream()
                 .map(this::toDTO)
                 .collect(Collectors.toList());
-    }
-
-    public void atualizarStatus(Emprestimo emprestimo, StatusEmprestimo status) {
-        emprestimo.setStatusEmprestimo(status);
-        emprestimoRepository.save(emprestimo);
     }
 
     private EmprestimoResponseDTO toDTO(Emprestimo emprestimo) {
@@ -227,6 +321,24 @@ public class EmprestimoService {
                 .observacao(emprestimo.getObservacao())
                 .dataSolicitacao(emprestimo.getDataSolicitacao())
                 .dataAprovacao(emprestimo.getDataAprovacao())
+                .build();
+    }
+
+    private EmprestimoParcelasResponseDTO toDTO(EmprestimoParcelas parcela) {
+        return EmprestimoParcelasResponseDTO.builder()
+                .id(parcela.getId().toString())
+                .valorParcela(parcela.getValorParcela())
+                .valorJuros(parcela.getValorJuros())
+                .statusParcela(parcela.getStatusParcela())
+                .diasAtraso(parcela.getDiasAtraso())
+                .numeroParcela(parcela.getNumeroParcela())
+                .multa(parcela.getMulta())
+                .observacao(parcela.getObservacao())
+                .emprestimoId(parcela.getEmprestimo().getId().toString())
+                .dataVencimento(parcela.getDataVencimento())
+                .dataPagamento(parcela.getDataPagamento())
+                .createdAt(parcela.getCreatedAt())
+                .updatedAt(parcela.getUpdatedAt())
                 .build();
     }
 }

@@ -15,6 +15,6 @@ public class VerificaEmprestimoListener {
 
     @RabbitListener(queues = RabbitConfiguration.QUEUE_NAME, containerFactory = "rabbitListenerContainerFactory")
     public void processMessage(EmprestimoSolicitadoDTO dto) {
-        emprestimoService.updateEmprestimo(dto.getId());
+        emprestimoService.updateEmprestimo(dto.getId(), dto.getDataInicio());
     }
 }
