@@ -32,4 +32,9 @@ public class GlobalExceptionHandler {
     public ResponseEntity<String> handleQuitacaoEmprestimo(QuitacaoEmprestimoException ex) {
         return ResponseEntity.badRequest().body(ex.getMessage());
     }
+
+    @ExceptionHandler(AcessoNegadoException.class)
+    public ResponseEntity<String> handleAcessoNegadoException(AcessoNegadoException ex) {
+        return ResponseEntity.badRequest().body(ex.getMessage());
+    }
 }
