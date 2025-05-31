@@ -1,9 +1,9 @@
 package com.financred.financred.service;
 
-import com.financred.financred.dto.reponse.*;
-import com.financred.financred.dto.request.EmprestimoRequestDTO;
-import com.financred.financred.dto.request.QuitarEmprestimoRequestDTO;
-import com.financred.financred.dto.request.QuitarParcelaRequestDTO;
+import com.financred.financred.controller.dto.response.*;
+import com.financred.financred.controller.dto.request.EmprestimoRequestDTO;
+import com.financred.financred.controller.dto.request.QuitarEmprestimoRequestDTO;
+import com.financred.financred.controller.dto.request.QuitarParcelaRequestDTO;
 import com.financred.financred.enums.StatusEmprestimo;
 import com.financred.financred.enums.StatusParcela;
 import com.financred.financred.exception.AcessoNegadoException;
@@ -20,7 +20,6 @@ import com.financred.financred.repository.HistoricoPagamentosRepository;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.core.RabbitTemplate;
@@ -30,7 +29,6 @@ import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.security.Principal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
@@ -104,12 +102,12 @@ public class EmprestimoService {
             emprestimo.setObservacao(erroValidacao.get());
             emprestimoRepository.save(emprestimo);
 
-            StatusEmprestimoResponseDTO dto = new StatusEmprestimoResponseDTO(
+            StatusEmprestimoResponseDTO statusEmprestimoResponseDTO  = new StatusEmprestimoResponseDTO(
                     emprestimo.getId(),
                     emprestimo.getStatusEmprestimo(),
                     emprestimo.getObservacao()
             );
-            messagingTemplate.convertAndSend("/topic/status-emprestimo/" + cliente.getId(), dto);
+            messagingTemplate.convertAndSend("/topic/status-emprestimo/" + cliente.getId(), statusEmprestimoResponseDTO);
 
             throw new ValidacaoEmprestimoException(erroValidacao.get());
         }
@@ -181,12 +179,19 @@ public class EmprestimoService {
     }
 
     @Transactional
-    public void quitarEmprestimo(QuitarEmprestimoRequestDTO request) {
-        Emprestimo emprestimo = emprestimoRepository.findById(request.idEmprestimo())
+    public void quitarEmprestimo(QuitarEmprestimoRequestDTO dto) {
+        Emprestimo emprestimo = emprestimoRepository.findById(dto.idEmprestimo())
                 .orElseThrow(() -> new EntityNotFoundException("Empréstimo não encontrado"));
 
-        List<EmprestimoParcelas> parcelas = emprestimoParcelasRepository.findByEmprestimoId(request.idEmprestimo())
+        List<EmprestimoParcelas> parcelas = emprestimoParcelasRepository.findByEmprestimoId(dto.idEmprestimo())
                 .orElseThrow(() -> new EntityNotFoundException("Parcela não encontrada"));
+
+        boolean todasPagas = parcelas.stream()
+                .allMatch(p -> p.getStatusParcela() == StatusParcela.PAGA);
+
+        if (todasPagas) {
+            throw new QuitacaoEmprestimoException("Este empréstimo já foi quitado. Todas as parcelas estão pagas.");
+        }
 
         List<EmprestimoParcelas> atrasadas = parcelas.stream()
                 .filter(p -> p.getStatusParcela() == StatusParcela.ATRASADA)
@@ -219,6 +224,7 @@ public class EmprestimoService {
                 .valorPago(valorRestante)
                 .formaPagamento("PIX")
                 .statusPagamento("PAGO")
+                .observacao("Emprestimo quitado por completo")
                 .build();
 
         historicoPagamentosRepository.save(historicoPagamentos);
@@ -241,18 +247,9 @@ public class EmprestimoService {
                 .collect(Collectors.toList());
     }
 
-    public List<EmprestimoResponseDTO> listarPorCliente(Long idCliente, Principal principal) {
-        ClienteAuthDTO clienteAuth = (ClienteAuthDTO) ((Authentication) principal).getPrincipal();
-
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-
-        boolean isAdmin = auth.getAuthorities()
-                .stream()
-                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
-
-        if (!isAdmin && !clienteAuth.getId().equals(idCliente)) {
-            throw new AcessoNegadoException("Você não tem permissão para acessar esses dados.");
-        }
+    public List<EmprestimoResponseDTO> listarPorCliente(Authentication authentication) {
+        ClienteAuthDTO clienteAuth = (ClienteAuthDTO) authentication.getPrincipal();
+        Long idCliente = clienteAuth.getId();
 
         List<Emprestimo> emprestimos = emprestimoRepository.findByClienteId(idCliente)
                 .orElseThrow(() -> new EntityNotFoundException("Não há registros de emprestimos para o cliente"));
@@ -262,12 +259,19 @@ public class EmprestimoService {
                 .collect(Collectors.toList());
     }
 
-    public List<EmprestimoParcelasResponseDTO> listarParcelasPorEmprestimoEUsuario(Long emprestimoId, Principal principal) {
-        ClienteAuthDTO clienteAuth = (ClienteAuthDTO) ((Authentication) principal).getPrincipal();
+    public List<EmprestimoResponseDTO> listarPorCliente(Long id) {
+        List<Emprestimo> emprestimos = emprestimoRepository.findByClienteId(id)
+                .orElseThrow(() -> new EntityNotFoundException("Não há registros de emprestimos para o cliente"));
 
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        return emprestimos.stream()
+                .map(this::toDTO)
+                .collect(Collectors.toList());
+    }
 
-        boolean isAdmin = auth.getAuthorities()
+    public List<EmprestimoParcelasResponseDTO> listarParcelasPorEmprestimoEUsuario(Long emprestimoId, Authentication authentication) {
+        ClienteAuthDTO clienteAuth = (ClienteAuthDTO) authentication.getPrincipal();
+
+        boolean isAdmin = authentication.getAuthorities()
                 .stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
 
@@ -283,12 +287,10 @@ public class EmprestimoService {
                 .collect(Collectors.toList());
     }
 
-    public List<EmprestimoResponseDTO> listarPorStatus(StatusEmprestimo status, Principal principal) {
-        ClienteAuthDTO clienteAuth = (ClienteAuthDTO) ((Authentication) principal).getPrincipal();
+    public List<EmprestimoResponseDTO> listarPorStatus(StatusEmprestimo status, Authentication authentication) {
+        ClienteAuthDTO clienteAuth = (ClienteAuthDTO) authentication.getPrincipal();
 
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-
-        boolean isAdmin = auth.getAuthorities()
+        boolean isAdmin = authentication.getAuthorities()
                 .stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
 
@@ -317,10 +319,12 @@ public class EmprestimoService {
                 .dataInicio(emprestimo.getDataInicio())
                 .dataFim(emprestimo.getDataFim())
                 .clienteId(emprestimo.getCliente().getId().toString())
+                .emailCliente(emprestimo.getCliente().getEmail())
                 .tipoEmprestimo(emprestimo.getTipoEmprestimo())
                 .observacao(emprestimo.getObservacao())
                 .dataSolicitacao(emprestimo.getDataSolicitacao())
                 .dataAprovacao(emprestimo.getDataAprovacao())
+                .parcelas(mapParcelas(emprestimo.getParcelas()))
                 .build();
     }
 
@@ -340,5 +344,17 @@ public class EmprestimoService {
                 .createdAt(parcela.getCreatedAt())
                 .updatedAt(parcela.getUpdatedAt())
                 .build();
+    }
+
+    private List<ParcelasEmprestimosResponseDTO> mapParcelas(List<EmprestimoParcelas> parcelas) {
+        return parcelas.stream().map(p -> new ParcelasEmprestimosResponseDTO(
+                p.getId().toString(),
+                p.getEmprestimo().getId().toString(),
+                p.getNumeroParcela().toString(),
+                p.getStatusParcela(),
+                p.getDataVencimento(),
+                p.getValorParcela(),
+                p.getMulta() != null ? p.getMulta() : BigDecimal.valueOf(0.00)
+        )).toList();
     }
 }

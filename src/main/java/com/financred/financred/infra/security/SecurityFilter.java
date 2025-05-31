@@ -1,10 +1,9 @@
 package com.financred.financred.infra.security;
 
-import com.financred.financred.dto.reponse.ClienteAuthDTO;
+import com.financred.financred.controller.dto.response.ClienteAuthDTO;
 import com.financred.financred.enums.Role;
 import com.financred.financred.infra.service.SecurityService;
 import com.financred.financred.infra.service.TokenService;
-import com.financred.financred.model.Cliente;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;

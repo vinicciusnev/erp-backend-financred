@@ -1,4 +1,4 @@
-package com.financred.financred.dto.request;
+package com.financred.financred.controller.dto.request;
 
 import jakarta.validation.constraints.DecimalMin;
 import lombok.Data;

@@ -1,4 +1,4 @@
-package com.financred.financred.dto.reponse;
+package com.financred.financred.controller.dto.response;
 
 import lombok.Builder;
 import lombok.Data;
@@ -9,7 +9,6 @@ import java.time.LocalDate;
 @Data
 @Builder
 public class HistoricoPagamentoResponseDTO {
-
     private BigDecimal valorPago;
     private LocalDate dataPagamento;
     private String formaPagamento;

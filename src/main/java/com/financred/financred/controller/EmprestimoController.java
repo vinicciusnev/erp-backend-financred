@@ -1,20 +1,19 @@
 package com.financred.financred.controller;
 
-import com.financred.financred.dto.reponse.EmprestimoParcelasResponseDTO;
-import com.financred.financred.dto.reponse.EmprestimoResponseDTO;
-import com.financred.financred.dto.request.EmprestimoRequestDTO;
-import com.financred.financred.dto.request.QuitarEmprestimoRequestDTO;
-import com.financred.financred.dto.request.QuitarParcelaRequestDTO;
+import com.financred.financred.controller.dto.response.EmprestimoParcelasResponseDTO;
+import com.financred.financred.controller.dto.response.EmprestimoResponseDTO;
+import com.financred.financred.controller.dto.request.EmprestimoRequestDTO;
+import com.financred.financred.controller.dto.request.QuitarEmprestimoRequestDTO;
+import com.financred.financred.controller.dto.request.QuitarParcelaRequestDTO;
 import com.financred.financred.enums.StatusEmprestimo;
 import com.financred.financred.service.EmprestimoService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
-import java.security.Principal;
 import java.util.List;
 
 @RestController
@@ -22,11 +21,10 @@ import java.util.List;
 @RequiredArgsConstructor
 public class EmprestimoController {
 
-    @Autowired
     private final EmprestimoService emprestimoService;
 
-    @ResponseStatus(code = HttpStatus.ACCEPTED)
     @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
     public void solicitarEmprestimo(@RequestBody EmprestimoRequestDTO request) {
         emprestimoService.solicitaEmprestimo(request);
     }
@@ -37,43 +35,41 @@ public class EmprestimoController {
         return ResponseEntity.ok(emprestimoService.listarTodos());
     }
 
-    @GetMapping("{id}")
-    @PreAuthorize("hasAnyRole('CLIENTE', 'ADMIN')")
-    public ResponseEntity<List<EmprestimoResponseDTO>> listarPorCliente(@PathVariable Long id, Principal principal) {
-
-        List<EmprestimoResponseDTO> emprestimoResponseDtos = emprestimoService.listarPorCliente(id, principal);
-
-        return ResponseEntity.ok(emprestimoResponseDtos);
+    @GetMapping("/me")
+    @PreAuthorize("hasRole('CLIENTE')")
+    public ResponseEntity<List<EmprestimoResponseDTO>> listarDoCliente(Authentication auth) {
+        return ResponseEntity.ok(emprestimoService.listarPorCliente(auth));
     }
 
-    @GetMapping("/status")
-    @PreAuthorize("hasAnyRole('CLIENTE', 'ADMIN')")
-    public ResponseEntity<List<EmprestimoResponseDTO>> listarPorStatus(@RequestParam StatusEmprestimo statusEmprestimo, Principal principal) {
-
-        List<EmprestimoResponseDTO> emprestimoResponseDtos = emprestimoService.listarPorStatus(statusEmprestimo, principal);
-
-        return ResponseEntity.ok(emprestimoResponseDtos);
+    @GetMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<EmprestimoResponseDTO>> listarDoCliente(@PathVariable Long id) {
+        return ResponseEntity.ok(emprestimoService.listarPorCliente(id));
     }
 
-
-    @GetMapping("{emprestimoId}/parcelas")
-    @PreAuthorize("hasAnyRole('CLIENTE', 'ADMIN')")
-    public ResponseEntity<List<EmprestimoParcelasResponseDTO>> listarParcelasPorEmprestimo(@PathVariable Long emprestimoId, Principal principal) {
-
-        List<EmprestimoParcelasResponseDTO> parcelas = emprestimoService.listarParcelasPorEmprestimoEUsuario(emprestimoId, principal);
-
-        return ResponseEntity.ok(parcelas);
+    @GetMapping("/me/status")
+    @PreAuthorize("hasRole('CLIENTE')")
+    public ResponseEntity<List<EmprestimoResponseDTO>> listarPorStatus(@RequestParam StatusEmprestimo status, Authentication auth) {
+        return ResponseEntity.ok(emprestimoService.listarPorStatus(status, auth));
     }
 
-    @PutMapping("/quitar-parcela")
-    public ResponseEntity<?> quitarParcela(@RequestBody QuitarParcelaRequestDTO request) {
-        emprestimoService.quitarParcela(request);
+    @GetMapping("/{id}/parcelas")
+    @PreAuthorize("hasAnyRole('CLIENTE', 'ADMIN')")
+    public ResponseEntity<List<EmprestimoParcelasResponseDTO>> listarParcelas(@PathVariable Long id, Authentication auth) {
+        return ResponseEntity.ok(emprestimoService.listarParcelasPorEmprestimoEUsuario(id, auth));
+    }
+
+    @PostMapping("/parcelas/quitar")
+    @PreAuthorize("hasRole('CLIENTE')")
+    public ResponseEntity<?> quitarParcela(@RequestBody QuitarParcelaRequestDTO dto) {
+        emprestimoService.quitarParcela(dto);
         return ResponseEntity.ok().build();
     }
 
-    @PutMapping("/quitar-emprestimo")
-    public ResponseEntity<?> quitarEmprestimo(@RequestBody QuitarEmprestimoRequestDTO request) {
-        emprestimoService.quitarEmprestimo(request);
+    @PostMapping("/quitar")
+    @PreAuthorize("hasRole('CLIENTE')")
+    public ResponseEntity<?> quitarEmprestimo(@RequestBody QuitarEmprestimoRequestDTO dto) {
+        emprestimoService.quitarEmprestimo(dto);
         return ResponseEntity.ok().build();
     }
 }

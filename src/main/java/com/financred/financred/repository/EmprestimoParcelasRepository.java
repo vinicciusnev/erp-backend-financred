@@ -10,8 +10,9 @@ import java.util.Optional;
 
 public interface EmprestimoParcelasRepository extends JpaRepository<EmprestimoParcelas, Long> {
     Optional<List<EmprestimoParcelas>> findByEmprestimoId(Long emprestimoId);
-    List<EmprestimoParcelas> findByStatusParcela(String statusParcela);
+    List<EmprestimoParcelas> findByStatusParcela(StatusParcela statusParcela);
     Optional<List<EmprestimoParcelas>> findByStatusParcelaAndEmprestimoId(StatusParcela statusParcela, Long emprestimoId);
+    Optional<List<EmprestimoParcelas>> findByStatusParcelaAndEmprestimo_Cliente_Id(StatusParcela statusParcela, Long clienteId);
     Optional<EmprestimoParcelas> findByDataVencimentoAndEmprestimoId(LocalDate dataVencimento, Long emprestimoId);
     Long id(Long id);
 }

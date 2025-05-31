@@ -1,9 +1,9 @@
 package com.financred.financred.service.mappers;
 
-import com.financred.financred.dto.request.ClienteRequestDTO;
-import com.financred.financred.dto.request.ContaBancariaDTO;
-import com.financred.financred.dto.request.DadosFinanceirosDTO;
-import com.financred.financred.dto.request.EnderecoDTO;
+import com.financred.financred.controller.dto.request.ClienteRequestDTO;
+import com.financred.financred.controller.dto.request.ContaBancariaDTO;
+import com.financred.financred.controller.dto.request.DadosFinanceirosDTO;
+import com.financred.financred.controller.dto.request.EnderecoDTO;
 import com.financred.financred.model.Cliente;
 import org.mapstruct.*;
 

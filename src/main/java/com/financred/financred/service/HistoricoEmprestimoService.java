@@ -1,9 +1,11 @@
 package com.financred.financred.service;
 
-import com.financred.financred.dto.reponse.HistoricoPagamentoResponseDTO;
+import com.financred.financred.controller.dto.response.ClienteAuthDTO;
+import com.financred.financred.controller.dto.response.HistoricoPagamentoResponseDTO;
 import com.financred.financred.model.HistoricoPagamentos;
 import com.financred.financred.repository.HistoricoPagamentosRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
@@ -23,8 +25,10 @@ public class HistoricoEmprestimoService {
     }
 
 
-    public List<HistoricoPagamentoResponseDTO> listarPorCliente(Long idCliente) {
-        return historicoPagamentosRepository.findByEmprestimoClienteIdOrderByDataPagamentoDesc(idCliente)
+    public List<HistoricoPagamentoResponseDTO> listarPorCliente(Authentication authentication) {
+        ClienteAuthDTO clienteAuth = (ClienteAuthDTO) authentication.getPrincipal();
+
+        return historicoPagamentosRepository.findByEmprestimoClienteIdOrderByDataPagamentoDesc(clienteAuth.getId())
                 .stream()
                 .map(this::toDTO)
                 .toList();

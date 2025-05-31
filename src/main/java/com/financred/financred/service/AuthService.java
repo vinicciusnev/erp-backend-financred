@@ -1,10 +1,11 @@
 package com.financred.financred.service;
 
-import com.financred.financred.dto.reponse.AuthResponseDTO;
-import com.financred.financred.dto.reponse.RegisterResponseDTO;
-import com.financred.financred.dto.request.LoginRequestDTO;
-import com.financred.financred.dto.request.RegisterRequestDTO;
+import com.financred.financred.controller.dto.response.AuthResponseDTO;
+import com.financred.financred.controller.dto.response.RegisterResponseDTO;
+import com.financred.financred.controller.dto.request.LoginRequestDTO;
+import com.financred.financred.controller.dto.request.RegisterRequestDTO;
 import com.financred.financred.enums.Role;
+import com.financred.financred.exception.ClienteJaCadastradoException;
 import com.financred.financred.exception.InvalidCredentialsException;
 import com.financred.financred.infra.service.TokenService;
 import com.financred.financred.model.Cliente;
@@ -36,7 +37,7 @@ public class AuthService {
 
     public RegisterResponseDTO register(RegisterRequestDTO request) {
         if (Boolean.TRUE.equals(clienteRepository.existsByEmail(request.email()))) {
-            throw new RuntimeException("Usuário já cadastrado!");
+            throw new ClienteJaCadastradoException("Usuário já cadastrado!");
         }
 
         Cliente newCliente = new Cliente();

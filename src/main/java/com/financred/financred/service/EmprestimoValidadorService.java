@@ -1,6 +1,6 @@
 package com.financred.financred.service;
 
-import com.financred.financred.dto.reponse.ClienteContextDTO;
+import com.financred.financred.controller.dto.response.ClienteContextDTO;
 import org.springframework.stereotype.Service;
 
 import java.util.Map;

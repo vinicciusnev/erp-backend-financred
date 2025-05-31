@@ -1,4 +1,4 @@
-package com.financred.financred.dto.reponse;
+package com.financred.financred.controller.dto.response;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;

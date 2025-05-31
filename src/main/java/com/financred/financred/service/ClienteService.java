@@ -1,14 +1,15 @@
 package com.financred.financred.service;
 
-import com.financred.financred.dto.reponse.ClienteResponseDTO;
-import com.financred.financred.dto.request.ClienteRequestDTO;
+import com.financred.financred.controller.dto.response.ClienteAuthDTO;
+import com.financred.financred.controller.dto.response.ClienteResponseDTO;
+import com.financred.financred.controller.dto.request.ClienteRequestDTO;
 import com.financred.financred.enums.Role;
 import com.financred.financred.model.Cliente;
 import com.financred.financred.repository.ClienteRepository;
 import com.financred.financred.service.mappers.ClienteMapper;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -47,6 +48,18 @@ public class ClienteService {
     }
 
     @Transactional
+    public void updateInfo(Authentication authentication, ClienteRequestDTO request) {
+        ClienteAuthDTO clienteAuth = (ClienteAuthDTO) authentication.getPrincipal();
+        Long idCliente = clienteAuth.getId();
+
+        Cliente clienteExistente = clienteRepository.getReferenceById(idCliente);
+
+        clienteMapper.updateClienteFromDto(request, clienteExistente);
+
+        clienteRepository.save(clienteExistente);
+    }
+
+    @Transactional
     public void updateInfo(Long id, ClienteRequestDTO request) {
         Cliente clienteExistente = clienteRepository.getReferenceById(id);
 
@@ -62,9 +75,19 @@ public class ClienteService {
                 .collect(Collectors.toList());
     }
 
+    public ClienteResponseDTO buscarPorId(Authentication authentication) {
+        ClienteAuthDTO clienteAuth = (ClienteAuthDTO) authentication.getPrincipal();
+
+        Cliente cliente = clienteRepository.findById(clienteAuth.getId())
+                .orElseThrow(() -> new RuntimeException("Cliente não encontrado"));
+
+        return mapToResponse(cliente);
+    }
+
     public ClienteResponseDTO buscarPorId(Long id) {
         Cliente cliente = clienteRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Cliente não encontrado"));
+
         return mapToResponse(cliente);
     }
 
@@ -74,6 +97,7 @@ public class ClienteService {
 
     private ClienteResponseDTO mapToResponse(Cliente cliente) {
         return ClienteResponseDTO.builder()
+                .id(cliente.getId().toString())
                 .nomeCompleto(cliente.getNomeCompleto())
                 .cpf(cliente.getCpf())
                 .email(cliente.getEmail())

@@ -1,7 +1,7 @@
 package com.financred.financred.listeners;
 
 import com.financred.financred.config.RabbitConfiguration;
-import com.financred.financred.dto.reponse.EmprestimoSolicitadoDTO;
+import com.financred.financred.controller.dto.response.EmprestimoSolicitadoDTO;
 import com.financred.financred.service.EmprestimoService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;

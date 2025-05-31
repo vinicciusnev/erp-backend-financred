@@ -37,4 +37,9 @@ public class GlobalExceptionHandler {
     public ResponseEntity<String> handleAcessoNegadoException(AcessoNegadoException ex) {
         return ResponseEntity.badRequest().body(ex.getMessage());
     }
+
+    @ExceptionHandler(ClienteJaCadastradoException.class)
+    public ResponseEntity<String> handleClienteJaCadastradoException(ClienteJaCadastradoException ex) {
+        return ResponseEntity.badRequest().body(ex.getMessage());
+    }
 }

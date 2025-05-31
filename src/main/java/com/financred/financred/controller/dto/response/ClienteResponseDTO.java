@@ -1,4 +1,4 @@
-package com.financred.financred.dto.reponse;
+package com.financred.financred.controller.dto.response;
 
 import com.financred.financred.enums.Role;
 import lombok.Builder;
@@ -10,13 +10,12 @@ import java.math.BigDecimal;
 @Data
 @Builder
 public class ClienteResponseDTO {
+    private String id;
     private String nomeCompleto;
     private String cpf;
     private LocalDate nascimento;
     private String email;
     private String telefone;
-
-    // Endereço
     private String rua;
     private String numero;
     private String complemento;
@@ -24,16 +23,12 @@ public class ClienteResponseDTO {
     private String cidade;
     private String estado;
     private String cep;
-
-    // Dados financeiros
     private BigDecimal renda;
     private String profissao;
     private String empresa;
     private String banco;
     private String agencia;
     private String conta;
-
-    // Outros
     private Long score;
     private Role role;
 }

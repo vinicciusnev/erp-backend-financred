@@ -1,6 +1,6 @@
 package com.financred.financred.infra.service;
 
-import com.financred.financred.dto.reponse.ClienteAuthDTO;
+import com.financred.financred.controller.dto.response.ClienteAuthDTO;
 import com.financred.financred.enums.Role;
 import com.financred.financred.model.Cliente;
 import com.financred.financred.repository.ClienteRepository;
