@@ -40,26 +40,35 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        // Rotas públicas
+
+                        // === ROTAS PÚBLICAS ===
                         .requestMatchers(HttpMethod.POST, "/api/v1/auth/**").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/v1/clientes").permitAll()
 
-                        // Rotas de admin
-                        .requestMatchers(HttpMethod.GET, "/api/v1/clientes/admin").hasRole("ADMIN")
+                        // === ROTAS DO CLIENTE (logado com ROLE_CLIENTE) ===
+                        .requestMatchers(HttpMethod.GET, "/api/v1/clientes/me").hasRole("CLIENTE")
+                        .requestMatchers(HttpMethod.PATCH, "/api/v1/clientes/me").hasRole("CLIENTE")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/emprestimos/me").hasRole("CLIENTE")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/emprestimos/me/status").hasRole("CLIENTE")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/emprestimos/quitar").hasRole("CLIENTE")
+                        .requestMatchers(HttpMethod.POST, "/api/v1/emprestimos/parcelas/quitar").hasRole("CLIENTE")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/historico-pagamentos/me").hasRole("CLIENTE")
+
+                        // === ROTAS ACESSÍVEIS TANTO POR ADMIN QUANTO CLIENTE ===
+                        .requestMatchers(HttpMethod.GET, "/api/v1/emprestimos/*/parcelas").hasAnyRole("CLIENTE", "ADMIN")
+
+                        // === ROTAS DE ADMIN ===
+                        .requestMatchers(HttpMethod.GET, "/api/v1/clientes").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/clientes/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/v1/emprestimos/admin").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/v1/historico-pagamentos/admin").hasRole("ADMIN")
 
-                        // Rotas de cliente ou admin
-                        .requestMatchers(HttpMethod.GET, "/api/v1/emprestimos/cliente/**")
-                        .hasAnyRole("ADMIN", "CLIENTE")
+                        // === ROTAS GERAIS (autenticado, qualquer perfil) ===
+                        .requestMatchers(HttpMethod.GET, "/api/v1/dashboard/stats").authenticated()
 
-                        // Rotas autenticadas (sem restrição de role)
-                        .requestMatchers(HttpMethod.GET, "/api/v1/clientes/**").authenticated()
-                        .requestMatchers(HttpMethod.PATCH, "/api/v1/clientes/**").authenticated()
-                        .requestMatchers(HttpMethod.PUT, "/api/v1/emprestimos/**").authenticated()
+                        // === ROTA WEBSOCKET (autenticado, qualquer perfil) ===
+                        .requestMatchers("/api/v1/ws/**").permitAll()
 
-                        .requestMatchers(HttpMethod.GET, "/api/v1/historico").hasRole("ADMIN")
-
-                        // Tudo mais precisa de autenticação
+                        // === QUALQUER OUTRA ROTA ===
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(securityFilter, UsernamePasswordAuthenticationFilter.class)
