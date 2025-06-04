@@ -143,6 +143,20 @@ public class EmprestimoService {
         messagingTemplate.convertAndSend("/topic/status-emprestimo/" + cliente.getId(), dto);
     }
 
+    public SimulacaoEmprestimoResponseDTO simularEmprestimo(EmprestimoRequestDTO request) {
+        BigDecimal taxaJuros = new BigDecimal("0.04");
+        BigDecimal valorParcela = calcularValorParcelaComJuros(request.getValorSolicitado(), request.getParcelas(), taxaJuros);
+        BigDecimal totalComJuros = valorParcela.multiply(BigDecimal.valueOf(request.getParcelas()));
+        BigDecimal valorJuros = totalComJuros.subtract(request.getValorSolicitado());
+
+        return new SimulacaoEmprestimoResponseDTO(
+                valorParcela,
+                request.getParcelas(),
+                totalComJuros,
+                valorJuros,
+                taxaJuros.multiply(new BigDecimal("100"))
+        );
+    }
 
     private BigDecimal calcularValorParcelaComJuros(BigDecimal valor, int parcelas, BigDecimal taxaMensal) {
         BigDecimal umMaisJuros = BigDecimal.ONE.add(taxaMensal);

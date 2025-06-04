@@ -5,6 +5,7 @@ import com.financred.financred.controller.dto.response.EmprestimoResponseDTO;
 import com.financred.financred.controller.dto.request.EmprestimoRequestDTO;
 import com.financred.financred.controller.dto.request.QuitarEmprestimoRequestDTO;
 import com.financred.financred.controller.dto.request.QuitarParcelaRequestDTO;
+import com.financred.financred.controller.dto.response.SimulacaoEmprestimoResponseDTO;
 import com.financred.financred.enums.StatusEmprestimo;
 import com.financred.financred.service.EmprestimoService;
 import lombok.RequiredArgsConstructor;
@@ -27,6 +28,11 @@ public class EmprestimoController {
     @ResponseStatus(HttpStatus.CREATED)
     public void solicitarEmprestimo(@RequestBody EmprestimoRequestDTO request) {
         emprestimoService.solicitaEmprestimo(request);
+    }
+
+    @PostMapping("/simular")
+    public ResponseEntity<SimulacaoEmprestimoResponseDTO> simularEmprestimo(@RequestBody EmprestimoRequestDTO request) {
+        return ResponseEntity.ok(emprestimoService.simularEmprestimo(request));
     }
 
     @GetMapping("/admin")

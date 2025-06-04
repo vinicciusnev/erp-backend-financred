@@ -32,7 +32,7 @@ public class AuthService {
 
         String token = tokenService.generateToken(request.email());
 
-        return new AuthResponseDTO(cliente.getEmail(), token, cliente.getRole().toString(), cliente.getId());
+        return new AuthResponseDTO(cliente.getEmail(), token, cliente.getRole().toString(), cliente.getId(), extrairNomeESobrenome(cliente.getNomeCompleto()));
     }
 
     public RegisterResponseDTO register(RegisterRequestDTO request) {
@@ -52,5 +52,14 @@ public class AuthService {
 
         String token = tokenService.generateToken(request.email());
         return new RegisterResponseDTO(token, Role.ROLE_CLIENTE.toString(), newCliente.getId());
+    }
+
+    private static String extrairNomeESobrenome(String nomeCompleto) {
+        if (nomeCompleto == null || nomeCompleto.isBlank()) return "";
+
+        String[] partes = nomeCompleto.trim().split("\\s+");
+        if (partes.length == 1) return partes[0];
+
+        return partes[0] + " " + partes[partes.length - 1];
     }
 }
